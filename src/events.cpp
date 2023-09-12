@@ -1,66 +1,79 @@
-#include "events.hpp"
-#include <glog/logging.h>
-#include <algorithm>
+/*
+ * src/events.cpp
+ * 
+ * Created 27 June 2020, 05:16 by mynori
+ * Description :
+ * 
+ * Project repo https://github.com/mynori
+ * Copyright 2023 TinyMinori
+ */
 
-Events::Events() {}
+#include "events.h"
+#include "renderer.h"
 
-void    Events::loop(WindowManager &wm) {
-  for (;;) {
+Events::Events(Application &wm)
+    :   _app(wm) {}
+
+Events::~Events() {}
+
+void    Events::run() {
     XEvent e;
-    XNextEvent(wm.getDisplay(), &e);
-    //LOG(INFO) << "Received event: " << ToString(e);
+    while (1) {
+        XNextEvent(_app.getDisplay(), &e);
+        //LOG(INFO) << "Received event: " << ToString(e);
 
-    switch (e.type) {
-      case CreateNotify:
-        onCreateNotify(wm, e.xcreatewindow);
-        break;
-      case DestroyNotify:
-        onDestroyNotify(wm, e.xdestroywindow);
-        break;
-      case ReparentNotify:
-        onReparentNotify(wm, e.xreparent);
-        break;
-      case MapNotify:
-        onMapNotify(wm, e.xmap);
-        break;
-      case UnmapNotify:
-        onUnmapNotify(wm, e.xunmap);
-        break;
-      case ConfigureNotify:
-        onConfigureNotify(wm, e.xconfigure);
-        break;
-      case MapRequest:
-        onMapRequest(wm, e.xmaprequest);
-        break;
-      case ConfigureRequest:
-        onConfigureRequest(wm, e.xconfigurerequest);
-        break;
-      case ButtonPress:
-        onButtonPressed(wm, e.xbutton);
-        break;
-      case ButtonRelease:
-        onButtonReleased(wm, e.xbutton);
-        break;
-      case MotionNotify:
-        while (XCheckTypedWindowEvent(
-            wm.getDisplay(), e.xmotion.window, MotionNotify, &e)) {}
-        onMotionNotify(wm, e.xmotion);
-        break;
-      case KeyPress:
-        onKeyPressed(wm, e.xkey);
-        break;
-      case KeyRelease:
-        onKeyReleased(wm, e.xkey);
-        break;
-      default:
-        LOG(WARNING) << "Ignored event";
+        switch (e.type) {
+        case CreateNotify:
+            onCreateNotify(e.xcreatewindow);
+            break;
+        case DestroyNotify:
+            onDestroyNotify(e.xdestroywindow);
+            break;
+        case ReparentNotify:
+            onReparentNotify(e.xreparent);
+            break;
+        case MapNotify:
+            onMapNotify(e.xmap);
+            break;
+        case UnmapNotify:
+            onUnmapNotify(e.xunmap);
+            break;
+        case ConfigureNotify:
+            onConfigureNotify(e.xconfigure);
+            break;
+        case MapRequest:
+            onMapRequest(e.xmaprequest);
+            break;
+        case ConfigureRequest:
+            onConfigureRequest(e.xconfigurerequest);
+            break;
+        case ButtonPress:
+            onButtonPressed(e.xbutton);
+            break;
+        case ButtonRelease:
+            onButtonReleased(e.xbutton);
+            break;
+        case MotionNotify:
+            while (
+                XCheckTypedWindowEvent(
+                    _app.getDisplay(), e.xmotion.window, MotionNotify, &e));
+            onMotionNotify(e.xmotion);
+            break;
+        case KeyPress:
+            onKeyPressed(e.xkey);
+            break;
+        case KeyRelease:
+            onKeyReleased(e.xkey);
+            break;
+        default:
+            std::cerr << "Ignored event";
+        }
     }
-  }
 }
 
-void    Events::onCreateNotify(WindowManager &wm, const XCreateWindowEvent &e) {}
+void    Events::onCreateNotify(const XCreateWindowEvent &e) {}
 
-void    Events::onConfigureRequest(WindowManager &wm, const XConfigureRequestEvent &e) {
+void    Events::onConfigureRequest(const XConfigureRequestEvent &e) {
     XWindowChanges  changes;
 
     changes.x = e.x;
@@ -71,50 +84,50 @@ void    Events::onConfigureRequest(WindowManager &wm, const XConfigureRequestEve
     changes.sibling = e.above;
     changes.stack_mode = e.detail;
 
-    if (wm.getClients().count(e.window)) {
-        const Window frame = wm.getClients()[e.window];
-        XConfigureWindow(wm.getDisplay(), frame, e.value_mask, &changes);
+    if (this->_app.getClients().count(e.window)) {
+        const Window frame = this->_app.getClients()[e.window];
+        XConfigureWindow(this->_app.getDisplay(), frame, e.value_mask, &changes);
     }
 
-    XConfigureWindow(wm.getDisplay(), e.window, e.value_mask, &changes);
+    XConfigureWindow(this->_app.getDisplay(), e.window, e.value_mask, &changes);
     //LOG(INFO) << "Resize " << e.window << " to " < Size<int>(e.width, e.height);
 }
 
-void    Events::onDestroyNotify(WindowManager &wm, const XDestroyWindowEvent &e) {}
+void    Events::onDestroyNotify(const XDestroyWindowEvent &e) {}
 
-void    Events::onReparentNotify(WindowManager &wm, const XReparentEvent &e) {}
+void    Events::onReparentNotify(const XReparentEvent &e) {}
 
-void    Events::onMapRequest(WindowManager &wm, const XMapRequestEvent &e) {
+void    Events::onMapRequest(const XMapRequestEvent &e) {
     
-    Renderer::frame(wm, e.window, false);
+    Renderer::getInstance().frame(this->_app, e.window, false);
 
-    XMapWindow(wm.getDisplay(), e.window);
+    XMapWindow(this->_app.getDisplay(), e.window);
 }
 
-void    Events::onMapNotify(WindowManager &wm, const XMapEvent &e) {}
+void    Events::onMapNotify(const XMapEvent &e) {}
 
-void    Events::onConfigureNotify(WindowManager &wm, const XConfigureEvent &e) {}
+void    Events::onConfigureNotify(const XConfigureEvent &e) {}
 
-void    Events::onUnmapNotify(WindowManager &wm, const XUnmapEvent &e) {
-    if (!wm.getClients().count(e.window)) {
-        LOG(INFO) << "Ignore UnmapNotify for non-client window " << e.window;
+void    Events::onUnmapNotify(const XUnmapEvent &e) {
+    if (!this->_app.getClients().count(e.window)) {
+        std::cout << "Ignore UnmapNotify for non-client window " << e.window;
         return;
     }
 
-    if (e.event == wm.getRoot()) {
-        LOG(INFO) << "Ignore UnmapNotiy for reparented pre-existing window " << e.window;
+    if (e.event == this->_app.getRoot()) {
+        std::cout << "Ignore UnmapNotiy for reparented pre-existing window " << e.window;
         return ; 
     }
 
-    Renderer::unframe(wm, e.window);
+    Renderer::getInstance().unframe(this->_app, e.window);
 }
 
-void    Events::onButtonPressed(WindowManager &wm, const XButtonPressedEvent &e) {}
+void    Events::onButtonPressed(const XButtonPressedEvent &e) {}
 
-void    Events::onButtonReleased(WindowManager &wm, const XButtonReleasedEvent &e) {}
+void    Events::onButtonReleased(const XButtonReleasedEvent &e) {}
 
-void    Events::onMotionNotify(WindowManager &wm, const XMotionEvent &e) {}
+void    Events::onMotionNotify(const XMotionEvent &e) {}
 
-void    Events::onKeyPressed(WindowManager &wm, const XKeyPressedEvent &e) {}
+void    Events::onKeyPressed(const XKeyPressedEvent &e) {}
 
-void    Events::onKeyReleased(WindowManager &wm, const XKeyReleasedEvent &e) {}
+void    Events::onKeyReleased(const XKeyReleasedEvent &e) {}

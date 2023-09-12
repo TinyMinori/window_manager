@@ -1,2 +1,6 @@
 *.o
 window_manager
+build/
+
+.vscode/
+*.vgcore

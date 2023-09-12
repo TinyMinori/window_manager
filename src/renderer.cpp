@@ -1,15 +1,34 @@
-#include "renderer.hpp"
-#include <glog/logging.h>
+/*
+ * src/renderer.cpp
+ * 
+ * Created 27 June 2020, 05:23 by mynori
+ * Description :
+ * 
+ * Project repo https://github.com/mynori
+ * Copyright 2023 TinyMinori
+ */
+
+#include "renderer.h"
 
 Renderer::Renderer() {}
 
-void    Renderer::frame(WindowManager &wm, Window w, bool created_before_wm) {
+Renderer::~Renderer() {}
+
+Renderer    &Renderer::getInstance() {
+    static Renderer instance;
+
+    return instance;
+}
+
+void    Renderer::frame(Application &wm, Window w, bool created_before_wm) {
     const unsigned int BORDER_WIDTH = 3;
     const unsigned long BORDER_COLOR = 0xff0000;
     const unsigned long BG_COLOR = 0x0000ff;
 
     XWindowAttributes x_window_attrs;
-    CHECK(XGetWindowAttributes(wm.getDisplay(), w, &x_window_attrs));
+    if(!XGetWindowAttributes(wm.getDisplay(), w, &x_window_attrs)) {
+        throw std::logic_error("Oops Frame");
+    }
 
     if (created_before_wm) {
         if (x_window_attrs.override_redirect || x_window_attrs.map_state != IsViewable) {
@@ -45,10 +64,10 @@ void    Renderer::frame(WindowManager &wm, Window w, bool created_before_wm) {
 
     wm.getClients()[w] = frame;
 
-    LOG(INFO) << "Framed window " << w << " [" << frame << "]";
+    std::cout << "Framed window " << w << " [" << frame << "]" << std::endl;
 }
 
-void    Renderer::unframe(WindowManager &wm, Window w) {
+void    Renderer::unframe(Application &wm, Window w) {
     const Window frame = wm.getClients()[w];
 
     XUnmapWindow(wm.getDisplay(), frame);
@@ -64,5 +83,5 @@ void    Renderer::unframe(WindowManager &wm, Window w) {
 
     wm.getClients().erase(w);
 
-    LOG(INFO) << "Unframed window " << w << " [" << frame << "]";
+    std::cout << "Unframed window " << w << " [" << frame << "]" << std::endl;
 }

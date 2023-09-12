@@ -8,8 +8,7 @@ This project is for now a test but I want to make it bigger with an entire graph
 
 ## Build & Test
 
-Before building the project you will need the `libx11`, `google-glog`, a g++ compiler, `pkg-config` for the building part, and `xorg-xinit`, `xorg-server-xephyr`, `xclock`,
-`xeyes` and `xterm` for the testing part.
+Before building the project you will need the `libx11`, a g++ compiler, and `xorg-xinit`, `xorg-server-xephyr`, `xclock`, `xeyes` and `xterm` for the testing part.
 
 ``` bash
 # Build the Project

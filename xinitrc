@@ -2,5 +2,4 @@ xclock &
 xeyes &
 sleep 2 && xterm &
 
-export GLOG_logtostderr=1
-exec ./window_manager
+exec ./build/window_manager
